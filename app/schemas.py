@@ -49,14 +49,18 @@ class PostUpdate(PostBase):
 
 
 
-class PostResponse(BaseModel):
+class PostResponse(PostBase):
     id: int
-    title : str
-    content: str
-    published: bool
     created_at: datetime
     owner_id: int
     owner: UserResponse
+
+    class Config:
+        orm_mode = True
+
+class PostVoteResponse(BaseModel):
+    Post: PostResponse
+    votes: int
 
     class Config:
         orm_mode = True
