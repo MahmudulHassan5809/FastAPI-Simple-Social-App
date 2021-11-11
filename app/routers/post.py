@@ -16,14 +16,14 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.PostResponse])
-def get_posts(db: Session = Depends(get_db), user_id: int = Depends(ouath2.get_current_user)):
-    posts = db.query(models.Post).all()
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(ouath2.get_current_user), limit: int = 10, offset: int = 0, search : Optional[str] = ""):
+    posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(offset).all()
     return posts
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
-def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), user_id: int = Depends(ouath2.get_current_user)):
-    new_post = models.Post(**post.dict())
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(ouath2.get_current_user)):
+    new_post = models.Post(owner_id=current_user.id, **post.dict())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -43,7 +43,7 @@ def get_post(id: int, db: Session = Depends(get_db), user_id: int = Depends(ouat
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db: Session = Depends(get_db), user_id: int = Depends(ouath2.get_current_user)):
+def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(ouath2.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
 
     post = post_query.first()
@@ -52,6 +52,9 @@ def delete_post(id: int, db: Session = Depends(get_db), user_id: int = Depends(o
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
 
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Not authorized to perform requested action")
     post_query.delete(synchronize_session=False)
     db.commit()
 
@@ -59,7 +62,7 @@ def delete_post(id: int, db: Session = Depends(get_db), user_id: int = Depends(o
 
 
 @router.patch("/{id}", response_model=schemas.PostResponse)
-def update_post(id: int, updated_post: schemas.PostUpdate, db: Session = Depends(get_db), user_id: int = Depends(ouath2.get_current_user)):
+def update_post(id: int, updated_post: schemas.PostUpdate, db: Session = Depends(get_db), current_user: int = Depends(ouath2.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
 
     post = post_query.first()
@@ -69,6 +72,10 @@ def update_post(id: int, updated_post: schemas.PostUpdate, db: Session = Depends
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} does not exist")
 
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Not authorized to perform requested action")
+    
     update_data = updated_post.dict(exclude_unset=True)
     post_query.update(update_data, synchronize_session=False)
 

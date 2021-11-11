@@ -4,32 +4,6 @@ from datetime import datetime
 
 from pydantic.networks import EmailStr
 
-class PostBase(BaseModel):
-    title : str
-    content: str
-    published: bool = True
-
-
-class PostCreate(PostBase):
-    pass
-
-class PostUpdate(PostBase):
-    title : Optional[str]
-    content: Optional[str]
-    published: Optional[bool]
-
-
-
-class PostResponse(BaseModel):
-    id: int
-    title : str
-    content: str
-    published: bool
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -55,3 +29,33 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id : Optional[str]
+
+class PostBase(BaseModel):
+    title : str
+    content: str
+    published: bool = True
+
+
+class PostCreate(PostBase):
+    pass
+
+class PostUpdate(PostBase):
+    title : Optional[str]
+    content: Optional[str]
+    published: Optional[bool]
+
+
+
+class PostResponse(BaseModel):
+    id: int
+    title : str
+    content: str
+    published: bool
+    created_at: datetime
+    owner_id: int
+    owner: UserResponse
+
+    class Config:
+        orm_mode = True
+
+
